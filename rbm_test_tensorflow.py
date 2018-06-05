@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from tfrbm import BBRBM, GBRBM
 from tensorflow.examples.tutorials.mnist import input_data
 from scipy.io import loadmat
+import os
 
 def show_digit(x):
     plt.imshow(x.reshape((28, 28)), cmap=plt.cm.gray)
@@ -75,24 +76,42 @@ def make_GBRBM(Image_type,image_type):
     X_val = X_data[-n_val:]
     
     # train the model
-    gbrbm = GBRBM(n_visible=X_data.shape[1], n_hidden=1000, learning_rate=0.01, momentum=0.9, use_tqdm=True)
-    errs,errs_val = gbrbm.fit(X_train, X_val, n_epoches=450, batch_size=20)
-    # plot the results
-    plt.plot(errs)
-    plt.show()
-    plt.plot(errs_val)
-    plt.show()
+    gbrbm = GBRBM(n_visible=X_data.shape[1], n_hidden=1000, learning_rate=0.001, momentum=0.9, use_tqdm=True)
+    errs,errs_val = gbrbm.fit(X_train, X_val, n_epoches=2500, batch_size=10)
+
     # save the model
     save_path='../models/GBRBM/rbm_'+image_type+'/'
     save_name= image_type+'_model'
-    gbrbm.save_weights(filename=save_path, name=save_name) 
+        # plot the results
+    plt.plot(errs)
+    plt.show()
+    plt.savefig(save_path+save_name+'_train.png')
+    plt.plot(errs_val)
+    plt.savefig(save_path+save_name+'_val.png')
+    plt.show()
+#    gbrbm.save_weights(filename=save_path, name=save_name) 
     
     return gbrbm
 
-def make_BBRBM_layer2
+def make_BBRBM_layer2(train, validation, num_visible, num_hidden, num_epoches, lr , save_path):
+    bbrbm = BBRBM(n_visible=num_visible, n_hidden=num_hidden, learning_rate=lr, momentum=0.9, use_tqdm=True)
+    if os.listdir(save_path):
+        bbrbm.load_weights(filename = save_path, name = 'fusion_layer')
+    else :    
+        errs,errs_val = bbrbm.fit(train, validation, n_epoches=num_epoches, batch_size=20)
+        plt.plot(errs)
+        plt.show()
+        plt.plot(errs_val)
+        plt.show()
+#        bbrbm.save_weights(filename=save_path, name='fusion_layer') 
+    transform_train = bbrbm.transform(train)
+    transform_valid = bbrbm.transform(validation)    
+    return transform_train, transform_valid
+    
 
    
 def make_transform(Image_type,image_type):
+    # transform the data into lower dimension by using RBM
     data_path = '../data/'
     data_name = 'TBSS_'+Image_type+'_Rawimage_249.mat'
     X_data = loadmat(data_path+data_name)
@@ -153,27 +172,45 @@ X_val_original = X_data[-n_val:]
 #rd_bbrbm=make_BBRBM('RD','rd')
 #%% Gaussian based Restricted boltzmann machine
 
-#fa_gbrbm = make_GBRBM('FA','fa')
-#md_gbrbm = make_GBRBM('MD','md')
-#md_gbrbm = make_GBRBM('AD','ad')
-#md_gbrbm = make_GBRBM('RD','rd')
+fa_gbrbm = make_GBRBM('FA','fa')
+fa_gbrbm = make_GBRBM('MD','md')
+fa_gbrbm = make_GBRBM('AD','ad')
+fa_gbrbm = make_GBRBM('RD','rd')
 #%% first layer data transform 
-fa_train, fa_val = make_transform('FA','fa')
-md_train, md_val = make_transform('MD','md')
-ad_train, ad_val = make_transform('AD','ad')
-rd_train, rd_val = make_transform('RD','rd')
+#fa_train, fa_val = make_transform('FA','fa')
+#md_train, md_val = make_transform('MD','md')
+#ad_train, ad_val = make_transform('AD','ad')
+#rd_train, rd_val = make_transform('RD','rd')
 
 #%% concatenate the results from the first layer
-temp = np.concatenate((fa_train, md_train), axis=1)
-temp = np.concatenate((temp, ad_train), axis=1)
-train_layer1 = np.concatenate((temp, rd_train), axis=1)
+#temp = np.concatenate((fa_train, md_train), axis=1)
+#temp = np.concatenate((temp, ad_train), axis=1)
+#train_layer1 = np.concatenate((temp, rd_train), axis=1)
+#
+#temp1 = np.concatenate((fa_val, md_val), axis=1)
+#temp1 = np.concatenate((temp1, ad_val), axis=1)
+#valid_layer1 = np.concatenate((temp1, rd_val), axis=1)
+#
+#RBM_layer1 = {'train':train_layer1,'valid':valid_layer1}
+#np.save(data_path+'RBM_layer1.npy', RBM_layer1) 
 
-temp1 = np.concatenate((fa_val, md_val), axis=1)
-temp1 = np.concatenate((temp1, ad_val), axis=1)
-valid_layer1 = np.concatenate((temp1, rd_val), axis=1)
-
-RBM_layer1 = {'train':train_layer1,'valid':valid_layer1}
-np.save(data_path+'RBM_layer1.npy', RBM_layer1) 
+#%% training the second, third,forth and final layer
+#data_layer1 =np.load(data_path+'RBM_layer1.npy')
+#data_layer1 = data_layer1.item()
+#train_layer1 = data_layer1['train']
+#valid_layer1 = data_layer1['valid']
+#save_path = '../models/layer2/'
+##Second layer
+##train_layer2, valid_layer2 = make_BBRBM_layer2(train_layer1, valid_layer1, 4000, 5000, 200, 0.001, save_path)
+##third layer
+#save_path = '../models/layer3/'
+#train_layer3, valid_layer3 = make_BBRBM_layer2(train_layer1, valid_layer1, 4000, 2000, 450, 0.001, save_path)
+## forth layer
+#save_path = '../models/layer4/'
+#train_layer4, valid_layer4 = make_BBRBM_layer2(train_layer3, valid_layer3, 2000, 1000, 500, 0.001, save_path)
+## fifth layer
+#save_path = '../models/layer5/'
+#train_layer5, valid_layer5 = make_BBRBM_layer2(train_layer4, valid_layer4, 1000, 200, 1000, 0.001, save_path)
 #%% Comparison between Gaussian and Bernoulli RBM
 ############# loading Bernoulli RBM
 #bbrbm = BBRBM(n_visible=X_data.shape[1], n_hidden=1000, learning_rate=0.05, momentum=0.9, use_tqdm=True)
